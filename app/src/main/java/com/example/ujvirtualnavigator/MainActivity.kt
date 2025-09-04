@@ -1,53 +1,76 @@
 package com.example.ujvirtualnavigator
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.mapbox.geojson.Feature
 import com.mapbox.geojson.FeatureCollection
 import com.mapbox.geojson.LineString
+import com.mapbox.geojson.MultiLineString
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapboxMap
 import com.mapbox.maps.extension.compose.MapEffect
-import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState
 import com.mapbox.maps.extension.compose.style.MapStyle
 import com.mapbox.maps.extension.style.layers.addLayer
 import com.mapbox.maps.extension.style.layers.generated.lineLayer
+import com.mapbox.maps.extension.style.layers.properties.generated.LineCap
+import com.mapbox.maps.extension.style.layers.properties.generated.LineJoin
 import com.mapbox.maps.extension.style.sources.addSource
 import com.mapbox.maps.extension.style.sources.generated.GeoJsonSource
 import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
 import com.mapbox.maps.extension.style.sources.getSourceAs
 import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import org.json.JSONObject
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 class MainActivity : ComponentActivity() {
 
     private var hasLocationPermission = false
-
     private val requestPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             hasLocationPermission = granted
@@ -81,7 +104,7 @@ fun UjVirtualNavigatorApp(hasLocationPermission: Boolean) {
     val mapViewportState = rememberMapViewportState {
         setCameraOptions(
             CameraOptions.Builder()
-                .center(Point.fromLngLat(28.0182, -26.1865)) // Default UJ APB Campus
+                .center(Point.fromLngLat(28.0182, -26.1865))
                 .zoom(17.0)
                 .pitch(55.0)
                 .bearing(0.0)
@@ -89,58 +112,24 @@ fun UjVirtualNavigatorApp(hasLocationPermission: Boolean) {
         )
     }
 
-    // Custom locations
-    val locations = listOf(
-        "Gloria Sekwena" to Point.fromLngLat(28.01823906384884, -26.18984792639419),
-        "School of Tourism and Hospitality" to Point.fromLngLat(28.017863130010053, -26.189468821922002),
-        "UJ APB FADA" to Point.fromLngLat(28.017480031552612, -26.188543541014976),
-        "UJ APB Student Center" to Point.fromLngLat(28.016342989984075, -26.188448539883026),
-        "UJ APB Library" to Point.fromLngLat(28.015274047655343, -26.18627565139178),
-        "Bus Station" to Point.fromLngLat(28.01430758573417, -26.188145140693273)
-        // Add all other locations here...
-    )
-
+    val locations = remember { loadLocationsFromJson(context) }
     var selectedLocation by remember { mutableStateOf<Pair<String, Point>?>(null) }
     var dropdownExpanded by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize()) {
 
-        // Dropdown menu
-        Box(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-            Button(onClick = { dropdownExpanded = true }) {
-                Text(selectedLocation?.first ?: "Select Destination")
-            }
-            DropdownMenu(
-                expanded = dropdownExpanded,
-                onDismissRequest = { dropdownExpanded = false }
-            ) {
-                locations.forEach { location ->
-                    DropdownMenuItem(
-                        text = { Text(location.first) },
-                        onClick = {
-                            selectedLocation = location
-                            dropdownExpanded = false
-                        }
-                    )
-                }
-            }
-        }
-
-        // Map
-        MapboxMap(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
+        // --- Map ---
+        com.mapbox.maps.extension.compose.MapboxMap(
+            modifier = Modifier.fillMaxSize(),
             mapViewportState = mapViewportState,
             style = { MapStyle("mapbox://styles/slick16/cmf1jwwo8001201sg3ve1av3v") }
         ) {
             MapEffect(Unit) { mapView ->
-                val mapboxMap = mapView.getMapboxMap()
+                val mapboxMap = mapView.mapboxMap
                 mapboxMapRef = mapboxMap
 
                 mapboxMap.getStyle { style ->
-                    var routeSource = style.getSourceAs<GeoJsonSource>("route-source")
-                    if (routeSource == null) {
+                    if (style.getSourceAs<GeoJsonSource>("route-source") == null) {
                         style.addSource(
                             geoJsonSource("route-source") {
                                 featureCollection(FeatureCollection.fromFeatures(arrayOf()))
@@ -148,8 +137,10 @@ fun UjVirtualNavigatorApp(hasLocationPermission: Boolean) {
                         )
                         style.addLayer(
                             lineLayer("route-layer", "route-source") {
-                                lineColor("#ff6600")
-                                lineWidth(5.0)
+                                lineColor("#3b82f6")
+                                lineWidth(6.0)
+                                lineCap(LineCap.ROUND)
+                                lineJoin(LineJoin.ROUND)
                             }
                         )
                     }
@@ -163,6 +154,7 @@ fun UjVirtualNavigatorApp(hasLocationPermission: Boolean) {
 
                     mapView.location.addOnIndicatorPositionChangedListener { point ->
                         currentLocation = point
+
                         if (!firstGpsFix) {
                             mapViewportState.flyTo(
                                 CameraOptions.Builder()
@@ -175,17 +167,53 @@ fun UjVirtualNavigatorApp(hasLocationPermission: Boolean) {
                             firstGpsFix = true
                         }
 
+                        // Draw path only when a destination is selected
                         selectedLocation?.let { dest ->
-                            drawRoute(mapboxMap, point, dest.second)
+                            drawPath(mapboxMap, context, point, dest.second)
                         }
                     }
-                } else {
-                    Toast.makeText(context, "Location permission required", Toast.LENGTH_SHORT).show()
                 }
             }
         }
 
-        // Buttons
+        // --- Search bar ---
+        Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            OutlinedButton(
+                onClick = { dropdownExpanded = true },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(25.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color(0x80FFFFFF),
+                    contentColor = Color.Black
+                )
+            ) {
+                Icon(Icons.Default.Search, contentDescription = "Search", modifier = Modifier.padding(end = 8.dp))
+                Text(selectedLocation?.first ?: "Search Destination")
+            }
+
+            DropdownMenu(
+                expanded = dropdownExpanded,
+                onDismissRequest = { dropdownExpanded = false },
+                modifier = Modifier.background(Color(0x80FFFFFF), RoundedCornerShape(16.dp))
+            ) {
+                locations.forEach { location ->
+                    DropdownMenuItem(
+                        text = { Text(location.first) },
+                        onClick = {
+                            selectedLocation = location
+                            dropdownExpanded = false
+
+                            // Draw path when a new destination is selected
+                            currentLocation?.let { curr ->
+                                drawPath(mapboxMapRef ?: return@DropdownMenuItem, context, curr, location.second)
+                            }
+                        }
+                    )
+                }
+            }
+        }
+
+        // --- Recenter button ---
         Button(
             onClick = {
                 currentLocation?.let { point ->
@@ -200,52 +228,100 @@ fun UjVirtualNavigatorApp(hasLocationPermission: Boolean) {
                 } ?: Toast.makeText(context, "Waiting for GPS...", Toast.LENGTH_SHORT).show()
             },
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+                .size(56.dp)
+                .shadow(4.dp, CircleShape),
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(containerColor = Color.White)
         ) {
-            Text("Recenter")
-        }
-
-        Button(
-            onClick = {
-                val start = currentLocation
-                val dest = selectedLocation
-                val mapboxMap = mapboxMapRef
-                if (start != null && dest != null && mapboxMap != null) {
-                    drawRoute(mapboxMap, start, dest.second)
-                } else {
-                    Toast.makeText(context, "Select destination and wait for GPS fix", Toast.LENGTH_SHORT).show()
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-        ) {
-            Text("Draw Route")
+            Icon(Icons.Filled.LocationOn, contentDescription = "Recenter", tint = Color.Black)
         }
     }
 }
 
-fun drawRoute(mapboxMap: MapboxMap, start: Point, end: Point) {
-    val line = LineString.fromLngLats(listOf(start, end))
-    val feature = Feature.fromGeometry(line)
+// --- Draw only subpath ---
+fun drawPath(mapboxMap: MapboxMap, context: Context, start: Point, destination: Point) {
+    val pathPoints = getPathPointsFromFile(context)
+    if (pathPoints.isEmpty()) return
 
-    mapboxMap.getStyle { style ->
-        var routeSource = style.getSourceAs<GeoJsonSource>("route-source")
-        if (routeSource == null) {
-            style.addSource(
-                geoJsonSource("route-source") {
-                    featureCollection(FeatureCollection.fromFeature(feature))
-                }
-            )
-            style.addLayer(
-                lineLayer("route-layer", "route-source") {
-                    lineColor("#ff6600")
-                    lineWidth(5.0)
-                }
-            )
-        } else {
-            routeSource.featureCollection(FeatureCollection.fromFeature(feature))
+    val subPath = getSubPath(pathPoints, start, destination)
+    if (subPath.isEmpty()) return
+
+    val routeSource = mapboxMap.getStyle()?.getSourceAs<GeoJsonSource>("route-source") ?: return
+
+    CoroutineScope(Dispatchers.Main).launch {
+        routeSource.featureCollection(
+            FeatureCollection.fromFeature(Feature.fromGeometry(LineString.fromLngLats(subPath)))
+        )
+    }
+}
+
+// --- Helper to get subpath between current location and destination ---
+fun getSubPath(pathPoints: List<Point>, start: Point, end: Point): List<Point> {
+    val startIndex = pathPoints.indexOfMinBy { it.distanceTo(start) } ?: 0
+    val endIndex = pathPoints.indexOfMinBy { it.distanceTo(end) } ?: pathPoints.size - 1
+
+    return if (startIndex <= endIndex) {
+        pathPoints.subList(startIndex, endIndex + 1)
+    } else {
+        pathPoints.subList(endIndex, startIndex + 1).reversed()
+    }
+}
+
+// --- Load GeoJSON path points ---
+fun getPathPointsFromFile(context: Context, filename: String = "paths.geojson"): List<Point> {
+    val geoJsonString = try { context.assets.open(filename).bufferedReader().use { it.readText() } } catch (e: Exception) { e.printStackTrace(); "" }
+    if (geoJsonString.isEmpty()) return emptyList()
+
+    val featureCollection = FeatureCollection.fromJson(geoJsonString)
+    val points = mutableListOf<Point>()
+    featureCollection.features()?.forEach { feature ->
+        when (val geometry = feature.geometry()) {
+            is LineString -> points.addAll(geometry.coordinates())
+            is MultiLineString -> geometry.lineStrings().forEach { line -> points.addAll(line.coordinates()) }
         }
     }
+    return points
+}
+
+// --- Load locations from JSON ---
+fun loadLocationsFromJson(context: Context, filename: String = "locations.json"): List<Pair<String, Point>> {
+    val jsonString = try { context.assets.open(filename).bufferedReader().use { it.readText() } } catch (e: Exception) { e.printStackTrace(); return emptyList() }
+    val list = mutableListOf<Pair<String, Point>>()
+    val jsonObject = JSONObject(jsonString)
+    val locationsArray = jsonObject.getJSONArray("locations")
+    for (i in 0 until locationsArray.length()) {
+        val loc = locationsArray.getJSONObject(i)
+        val name = loc.getString("name")
+        val lat = loc.getDouble("latitude")
+        val lon = loc.getDouble("longitude")
+        list.add(name to Point.fromLngLat(lon, lat))
+    }
+    return list
+}
+
+// --- Extensions ---
+fun List<Point>.indexOfMinBy(selector: (Point) -> Double): Int? {
+    if (isEmpty()) return null
+    var minIndex = 0
+    var minValue = selector(this[0])
+    for (i in 1 until size) {
+        val v = selector(this[i])
+        if (v < minValue) { minIndex = i; minValue = v }
+    }
+    return minIndex
+}
+
+fun Point.distanceTo(other: Point): Double {
+    val lat1 = this.latitude(); val lon1 = this.longitude()
+    val lat2 = other.latitude(); val lon2 = other.longitude()
+    val earthRadius = 6371000.0
+    val dLat = Math.toRadians(lat2 - lat1)
+    val dLon = Math.toRadians(lon2 - lon1)
+    val a = sin(dLat/2) * sin(dLat/2) +
+            cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
+            sin(dLon/2) * sin(dLon/2)
+    val c = 2 * atan2(sqrt(a), sqrt(1-a))
+    return earthRadius * c
 }

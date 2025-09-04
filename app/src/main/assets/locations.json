@@ -1,0 +1,149 @@
+{
+  "locations": [
+    {
+      "name": "Gloria Sekwena",
+      "latitude": -26.18984792639419,
+      "longitude": 28.01823906384884
+    },
+    {
+      "name": "School of Tourism and Hospitality",
+      "latitude": -26.189468821922002,
+      "longitude": 28.017863130010053
+    },
+    {
+      "name": "UJ APB FADA",
+      "latitude": -26.188543541014976,
+      "longitude": 28.017480031552612
+    },
+    {
+      "name": "UJ APB Student Center",
+      "latitude": -26.188448539883026,
+      "longitude": 28.016342989984075
+    },
+    {
+      "name": "UJ Con Cowan Theatre",
+      "latitude": -26.188051568314368,
+      "longitude": 28.014878130998927
+    },
+    {
+      "name": "UJ APB Gym",
+      "latitude": -26.18753083224871,
+      "longitude": 28.013912215763888
+    },
+    {
+      "name": "UJ APB Biokinetics Clinic",
+      "latitude": -26.187587846725833,
+      "longitude": 28.01337357893316
+    },
+    {
+      "name": "UJ APB Library",
+      "latitude": -26.18627565139178,
+      "longitude": 28.015274047655343
+    },
+    {
+      "name": "UJ APB Study Center",
+      "latitude": -26.18728051767205,
+      "longitude": 28.015763749142618
+    },
+    {
+      "name": "Ndlovukazi Ladies Residence",
+      "latitude": -26.188908708674873,
+      "longitude": 28.015144176436653
+    },
+    {
+      "name": "Horizon Ladies Residence",
+      "latitude": -26.18867384639406,
+      "longitude": 28.014138975338348
+    },
+    {
+      "name": "Kilimanjaro Mens Residence",
+      "latitude": -26.19056172896769,
+      "longitude": 28.01359229811
+    },
+    {
+      "name": "UJ FM 95.4",
+      "latitude": -26.18834772683962,
+      "longitude": 28.01632312992571
+    },
+    {
+      "name": "UJ APB Protection Services",
+      "latitude": -26.18902168105297,
+      "longitude": 28.015943285919178
+    },
+    {
+      "name": "Block A",
+      "latitude": -26.18719467208832,
+      "longitude": 28.0148002808032
+    },
+    {
+      "name": "Block B",
+      "latitude": -26.18682328118091,
+      "longitude": 28.013255405513934
+    },
+    {
+      "name": "Block C",
+      "latitude": -26.186877460209754,
+      "longitude": 28.014356339955626
+    },
+    {
+      "name": "Block D",
+      "latitude": -26.186803340040377,
+      "longitude": 28.013860503015568
+    },
+    {
+      "name": "Block E",
+      "latitude": -26.18659073914245,
+      "longitude": 28.013212192089632
+    },
+    {
+      "name": "Block F",
+      "latitude": -26.186656671680023,
+      "longitude": 28.014509119322923
+    },
+    {
+      "name": "Block G",
+      "latitude": -26.18634993042927,
+      "longitude": 28.013192988464947
+    },
+    {
+      "name": "Block H",
+      "latitude": -26.186331503601863,
+      "longitude": 28.013980286276553
+    },
+    {
+      "name": "Block J",
+      "latitude": -26.186017660633087,
+      "longitude": 28.01356997322768
+    },
+    {
+      "name": "Sports Fields",
+      "latitude": -26.190081866971862,
+      "longitude": 28.011853963877186
+    },
+    {
+      "name": "Directors House",
+      "latitude": -26.186942967051685,
+      "longitude": 28.012556068043533
+    },
+    {
+      "name": "Student Support Services",
+      "latitude": -26.187683200395703,
+      "longitude": 28.016397866876535
+    },
+    {
+      "name": "Entrance 2",
+      "latitude": -26.187241205531905,
+      "longitude": 28.0123400054809
+    },
+    {
+      "name": "Ontdekking",
+      "latitude": -26.187399030649242,
+      "longitude": 28.015381663581547
+    },
+    {
+      "name": "Bus Station",
+      "latitude": -26.188145140693273,
+      "longitude": 28.01430758573417
+    }
+  ]
+}
